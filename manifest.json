@@ -1,0 +1,23 @@
+{
+  "name": "scan2play",
+  "short_name": "scan2play",
+  "description": "NFC-enabled audio player for streaming tracks from physical media",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0a0a",
+  "theme_color": "#6ba876",
+  "icons": [
+    {
+      "src": "./scan2play_icon_192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./scan2play_icon_512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
