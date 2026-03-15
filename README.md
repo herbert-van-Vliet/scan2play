@@ -86,6 +86,8 @@ Write NFC tags with a URL payload using an NFC writing app (e.g., NFC Tools for 
 - ⚠️ **iOS** — NFC reading available on iOS 13.1+, but Web NFC API not publicly supported. Requires native app.
 - ✅ **Desktop** — Direct URL mode works on all modern browsers (no scanning).
 
+**Device Detection:** If NFC is not supported, the app displays "NFC is not supported on this device. Please scan a QR code." instead of "Tap to scan..."
+
 ## Controls
 
 | Control | Action |
@@ -129,7 +131,7 @@ The browser's CORS policy applies. Audio URLs must be from servers that allow cr
 
 ## Deployment
 
-1. Place `player.html` on your web server.
+1. Place `player.html`, `manifest.json`, `scan2play_icon_192x192.png`, and `scan2play_icon_512x512.png` on your web server.
 2. Update the domain in your NFC tag URLs and documentation.
 3. Ensure server sends proper CORS headers for audio files:
    ```
@@ -138,7 +140,7 @@ The browser's CORS policy applies. Audio URLs must be from servers that allow cr
    Access-Control-Allow-Headers: Content-Type, Range
    Accept-Ranges: bytes
    ```
-4. No build step required—it's a single HTML file with inline CSS and JavaScript.
+4. No build step required—minimal file set with inline CSS and JavaScript.
 
 ## Security
 
