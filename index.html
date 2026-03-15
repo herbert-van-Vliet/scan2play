@@ -1,0 +1,1018 @@
+<!--
+  scan2play
+  (c) 2026, info@remark.no
+  https://github.com/herbert-van-vliet/scan2play
+  
+  Licensed under Creative Commons Attribution-NonCommercial 4.0 (CC BY-NC)
+  See LICENSE file for details
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Metafor scan2play</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 640'><path d='M424.9 96.4C432.6 95.1 440.6 96.9 446.1 101.4C530.2 160.1 576 237.7 576 319.1C576 402.2 530.2 479.9 446.1 538.6C441.3 542.6 434.4 544.5 427.5 543.9C420.5 543.3 414 540.3 409.1 535.4L225.7 352.7C220.1 347.2 217 339.7 216.1 331.8C216.1 324 220.1 316.5 225.6 310.9C231.2 305.4 238.7 302.2 246.5 302.2C254.4 302.2 261.9 305.3 267.4 310.8L432.5 475.2C487.1 430.5 516.8 376 516.8 319.1C516.8 257.5 479.9 196.9 412.9 149.8C406.5 145.3 402.1 138.4 400.8 130.7C399.4 123 401.2 115 405.8 108.6C410.3 102.2 417.2 97.8 424.9 96.5zM218.9 543.6C211.2 544.9 203.3 543.1 196.8 538.6C113.7 479.9 67.8 402.2 67.8 319.1C67.8 237.7 113.6 160.1 196.8 101.4C202.5 97.4 209.4 95.5 216.4 96.1C223.3 96.7 229.8 99.7 234.7 104.6L418.1 287.3C423.7 292.8 426.8 300.3 426.8 308.2C426.9 315.1 423.8 323.5 418.2 329.1C412.7 334.6 405.2 337.8 397.3 337.8C389.5 337.8 381.1 334.7 376.4 329.2L211.3 164.7C156.7 209.9 127 263.9 127 319.1C127 382.5 163.9 443.1 230.1 490.2C237.4 494.8 241.7 501.6 243.1 509.4C244.4 517.1 242.6 525.1 238.1 531.5C233.6 537.9 226.7 542.2 218.9 543.6z' fill='white'/></svg>">
+
+  <style>
+    :root {
+      --bg-dark: #0a0a0a;
+      --bg-card: #1a1a1a;
+      --border: #333;
+      --border-hover: #555;
+      --text-primary: #ffffff;
+      --text-secondary: #999;
+      --accent: #6ba876;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .viewport {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2rem 1.5rem;
+      max-width: 500px;
+      width: 100vw;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .scan-button {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      color: var(--text-secondary);
+      transition: all 0.3s ease;
+      flex-shrink: 0;
+      outline: none;
+    }
+
+    .scan-button:hover {
+      border-color: var(--border-hover);
+      color: #aaa;
+    }
+
+    .scan-button:active {
+      transform: scale(0.95);
+    }
+
+    .scan-button:focus,
+    .scan-button:focus-visible {
+      outline: none;
+      box-shadow: none;
+    }
+
+    .scan-button.scanning {
+      animation: pulse 1.5s infinite;
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .nfc-log {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+      max-width: 300px;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+      text-align: center;
+      margin: 0 auto;
+    }
+
+    .nfc-log.active {
+      color: #ccc;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1rem 0;
+    }
+
+    .error-message {
+      padding: 1rem;
+      background: #2a1a1a;
+      border: 1px solid #552222;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #cc8888;
+      display: none;
+      text-align: center;
+    }
+
+    .error-message.active {
+      display: block;
+    }
+
+    .player-section {
+      display: none;
+      flex-direction: column;
+      gap: 0.75rem;
+      flex-shrink: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .player-section.active {
+      display: flex;
+    }
+
+    .track-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .track-title {
+      font-size: 16px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+      max-width: 100%;
+    }
+
+    .track-counter {
+      font-size: 13px;
+      color: var(--text-secondary);
+      display: none;
+    }
+
+    .track-counter.active {
+      display: block;
+    }
+
+    .audio-visualizer {
+      width: 80%;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      margin: 0 auto;
+      cursor: pointer;
+      transition: opacity 0.3s ease;
+      outline: none;
+    }
+
+    .audio-visualizer:focus,
+    .audio-visualizer:focus-visible {
+      outline: none;
+    }
+
+    .bar {
+      width: 9%;
+      height: 60%;
+      background: var(--accent);
+      border-radius: 2px;
+      animation: wave 0.6s ease-in-out infinite;
+    }
+
+    .bar:nth-child(1) { animation-delay: 0s; }
+    .bar:nth-child(2) { animation-delay: 0.1s; }
+    .bar:nth-child(3) { animation-delay: 0.2s; }
+    .bar:nth-child(4) { animation-delay: 0.3s; }
+    .bar:nth-child(5) { animation-delay: 0.4s; }
+    .bar:nth-child(6) { animation-delay: 0.5s; }
+    .bar:nth-child(7) { animation-delay: 0.6s; }
+    .bar:nth-child(8) { animation-delay: 0.7s; }
+    .bar:nth-child(9) { animation-delay: 0.8s; }
+    .bar:nth-child(10) { animation-delay: 0.9s; }
+
+    @keyframes wave {
+      0%, 100% { height: 30%; }
+      50% { height: 100%; }
+    }
+
+    .visualizer-paused .bar {
+      animation: none;
+      height: 30%;
+      opacity: 0.5;
+    }
+
+    .progress-bar {
+      width: 80%;
+      height: 2px;
+      background: #333;
+      border-radius: 1px;
+      margin: 1rem auto 0.25rem;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 1px;
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+
+    .progress-dot {
+      width: 4px;
+      height: 4px;
+      background: var(--accent);
+      border-radius: 50%;
+      position: absolute;
+      top: 50%;
+      left: 0%;
+      transform: translate(-50%, -50%);
+      transition: left 0.1s linear;
+    }
+
+    video {
+      width: 100%;
+      border-radius: 4px;
+      background: #000;
+    }
+
+    .controls-wrapper {
+      width: 100vw;
+      position: relative;
+      left: 50%;
+      margin-left: -50vw;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      align-items: center;
+      transition: opacity 0.3s ease;
+    }
+
+    .controls, .controls-secondary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+    }
+
+    .controls-secondary {
+      gap: 1.5rem;
+    }
+
+    .control-btn {
+      width: 44px;
+      height: 44px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      font-size: 16px;
+      transition: all 0.2s ease;
+      outline: none;
+    }
+
+    .control-btn:hover {
+      border-color: var(--border-hover);
+      color: #aaa;
+    }
+
+    .control-btn:active {
+      transform: scale(0.95);
+    }
+
+    .control-btn:focus,
+    .control-btn:focus-visible {
+      outline: none;
+      box-shadow: none;
+    }
+
+    .control-btn.play-pause {
+      width: 56px;
+      height: 56px;
+      font-size: 20px;
+      border-color: #444;
+    }
+
+    .control-btn.play-pause:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .control-btn-small {
+      width: 33px;
+      height: 33px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      font-size: 12px;
+      transition: all 0.2s ease;
+      outline: none;
+    }
+
+    .control-btn-small:hover {
+      border-color: var(--border-hover);
+      color: #aaa;
+    }
+
+    .control-btn-small:active {
+      transform: scale(0.95);
+    }
+
+    .control-btn-small:focus,
+    .control-btn-small:focus-visible {
+      outline: none;
+      box-shadow: none;
+    }
+
+    .control-btn-small.active {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .dim {
+      opacity: 0.05;
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      max-width: 400px;
+      width: 90vw;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      color: #ccc;
+      font-size: 20px;
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s;
+    }
+
+    .modal-close:hover {
+      color: var(--text-primary);
+    }
+
+    .modal h2 {
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+      color: var(--text-primary);
+    }
+
+    .modal ol {
+      list-style: none;
+      margin: 0 0 1.5rem;
+      padding: 0;
+    }
+
+    .modal li {
+      margin-bottom: 1rem;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #ccc;
+    }
+
+    .modal li strong {
+      color: var(--text-primary);
+    }
+
+    svg.icon {
+      width: 1em;
+      height: 1em;
+      fill: currentColor;
+      vertical-align: -0.125em;
+    }
+
+    svg.icon {
+      width: 1em;
+      height: 1em;
+      fill: currentColor;
+      vertical-align: -0.125em;
+    }
+
+    svg.icon-sm {
+      width: 1.125em;
+      height: 1.125em;
+      fill: currentColor;
+    }
+
+    @media (max-width: 600px) {
+      .viewport {
+        padding: 1.5rem 1rem;
+      }
+
+      .scan-button {
+        width: 100px;
+        height: 100px;
+        font-size: 40px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <svg style="display: none;">
+    <defs>
+      <!-- Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com
+           License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Copyright 2024 Fonticons, Inc.) -->
+      <symbol id="icon-nfc" viewBox="0 0 640 640">
+        <path d="M424.9 96.4C432.6 95.1 440.6 96.9 446.1 101.4C530.2 160.1 576 237.7 576 319.1C576 402.2 530.2 479.9 446.1 538.6C441.3 542.6 434.4 544.5 427.5 543.9C420.5 543.3 414 540.3 409.1 535.4L225.7 352.7C220.1 347.2 217 339.7 216.1 331.8C216.1 324 220.1 316.5 225.6 310.9C231.2 305.4 238.7 302.2 246.5 302.2C254.4 302.2 261.9 305.3 267.4 310.8L432.5 475.2C487.1 430.5 516.8 376 516.8 319.1C516.8 257.5 479.9 196.9 412.9 149.8C406.5 145.3 402.1 138.4 400.8 130.7C399.4 123 401.2 115 405.8 108.6C410.3 102.2 417.2 97.8 424.9 96.5zM218.9 543.6C211.2 544.9 203.3 543.1 196.8 538.6C113.7 479.9 67.8 402.2 67.8 319.1C67.8 237.7 113.6 160.1 196.8 101.4C202.5 97.4 209.4 95.5 216.4 96.1C223.3 96.7 229.8 99.7 234.7 104.6L418.1 287.3C423.7 292.8 426.8 300.3 426.8 308.2C426.9 315.1 423.8 323.5 418.2 329.1C412.7 334.6 405.2 337.8 397.3 337.8C389.5 337.8 381.1 334.7 376.4 329.2L211.3 164.7C156.7 209.9 127 263.9 127 319.1C127 382.5 163.9 443.1 230.1 490.2C237.4 494.8 241.7 501.6 243.1 509.4C244.4 517.1 242.6 525.1 238.1 531.5C233.6 537.9 226.7 542.2 218.9 543.6z"/>
+      </symbol>
+      <symbol id="icon-play" viewBox="0 0 640 640">
+        <path d="M187.2 100.9C174.8 94.1 159.8 94.4 147.6 101.6C135.4 108.8 128 121.9 128 136L128 504C128 518.1 135.5 531.2 147.6 538.4C159.7 545.6 174.8 545.9 187.2 539.1L523.2 355.1C536 348.1 544 334.6 544 320C544 305.4 536 291.9 523.2 284.9L187.2 100.9z"/>
+      </symbol>
+      <symbol id="icon-pause" viewBox="0 0 640 640">
+        <path d="M176 96C149.5 96 128 117.5 128 144L128 496C128 522.5 149.5 544 176 544L240 544C266.5 544 288 522.5 288 496L288 144C288 117.5 266.5 96 240 96L176 96zM400 96C373.5 96 352 117.5 352 144L352 496C352 522.5 373.5 544 400 544L464 544C490.5 544 512 522.5 512 496L512 144C512 117.5 490.5 96 464 96L400 96z"/>
+      </symbol>
+      <symbol id="icon-backward" viewBox="0 0 640 640">
+        <path d="M491 100.8C478.1 93.8 462.3 94.5 450 102.6L192 272.1L192 128C192 110.3 177.7 96 160 96C142.3 96 128 110.3 128 128L128 512C128 529.7 142.3 544 160 544C177.7 544 192 529.7 192 512L192 367.9L450 537.5C462.3 545.6 478 546.3 491 539.3C504 532.3 512 518.8 512 504.1L512 136.1C512 121.4 503.9 107.9 491 100.9z"/>
+      </symbol>
+      <symbol id="icon-forward" viewBox="0 0 640 640">
+        <path d="M149 100.8C161.9 93.8 177.7 94.5 190 102.6L448 272.1L448 128C448 110.3 462.3 96 480 96C497.7 96 512 110.3 512 128L512 512C512 529.7 497.7 544 480 544C462.3 544 448 529.7 448 512L448 367.9L190 537.5C177.7 545.6 162 546.3 149 539.3C136 532.3 128 518.7 128 504L128 136C128 121.3 136.1 107.8 149 100.8z"/>
+      </symbol>
+      <symbol id="icon-shuffle" viewBox="0 0 640 640">
+        <path d="M467.8 98.4C479.8 93.4 493.5 96.2 502.7 105.3L566.7 169.3C572.7 175.3 576.1 183.4 576.1 191.9C576.1 200.4 572.7 208.5 566.7 214.5L502.7 278.5C493.5 287.7 479.8 290.4 467.8 285.4C455.8 280.4 448 268.9 448 256L448 224L416 224C405.9 224 396.4 228.7 390.4 236.8L358 280L318 226.7L339.2 198.4C357.3 174.2 385.8 160 416 160L448 160L448 128C448 115.1 455.8 103.4 467.8 98.4zM218 360L258 413.3L236.8 441.6C218.7 465.8 190.2 480 160 480L96 480C78.3 480 64 465.7 64 448C64 430.3 78.3 416 96 416L160 416C170.1 416 179.6 411.3 185.6 403.2L218 360zM502.6 534.6C493.4 543.8 479.7 546.5 467.7 541.5C455.7 536.5 448 524.9 448 512L448 480L416 480C385.8 480 357.3 465.8 339.2 441.6L185.6 236.8C179.6 228.7 170.1 224 160 224L96 224C78.3 224 64 209.7 64 192C64 174.3 78.3 160 96 160L160 160C190.2 160 218.7 174.2 236.8 198.4L390.4 403.2C396.4 411.3 405.9 416 416 416L448 416L448 384C448 371.1 455.8 359.4 467.8 354.4C479.8 349.4 493.5 352.2 502.7 361.3L566.7 425.3C572.7 431.3 576.1 439.4 576.1 447.9C576.1 456.4 572.7 464.5 566.7 470.5L502.7 534.5z"/>
+      </symbol>
+      <symbol id="icon-repeat" viewBox="0 0 640 640">
+        <path d="M534.6 182.6C547.1 170.1 547.1 149.8 534.6 137.3L470.6 73.3C461.4 64.1 447.7 61.4 435.7 66.4C423.7 71.4 416 83.1 416 96L416 128L256 128C150 128 64 214 64 320C64 337.7 78.3 352 96 352C113.7 352 128 337.7 128 320C128 249.3 185.3 192 256 192L416 192L416 224C416 236.9 423.8 248.6 435.8 253.6C447.8 258.6 461.5 255.8 470.7 246.7L534.7 182.7zM105.4 457.4C92.9 469.9 92.9 490.2 105.4 502.7L169.4 566.7C178.6 575.9 192.3 578.6 204.3 573.6C216.3 568.6 224 556.9 224 544L224 512L384 512C490 512 576 426 576 320C576 302.3 561.7 288 544 288C526.3 288 512 302.3 512 320C512 390.7 454.7 448 384 448L224 448L224 416C224 403.1 216.2 391.4 204.2 386.4C192.2 381.4 178.5 384.2 169.3 393.3L105.3 457.3z"/>
+      </symbol>
+      <symbol id="icon-pause" viewBox="0 0 640 640">
+        <path d="M176 96C149.5 96 128 117.5 128 144L128 496C128 522.5 149.5 544 176 544L240 544C266.5 544 288 522.5 288 496L288 144C288 117.5 266.5 96 240 96L176 96zM400 96C373.5 96 352 117.5 352 144L352 496C352 522.5 373.5 544 400 544L464 544C490.5 544 512 522.5 512 496L512 144C512 117.5 490.5 96 464 96L400 96z"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <div class="viewport">
+    <button class="scan-button dimmable" id="scanBtn"><svg class="icon"><use href="#icon-nfc"/></svg></button>
+    <div class="nfc-log" id="nfcLog">Tap to scan...</div>
+    <hr class="dimmable">
+    <div id="errorMessage" class="error-message" style="cursor: pointer;"></div>
+
+    <div class="modal-overlay" id="helpModal">
+      <div class="modal">
+        <button class="modal-close" id="modalClose">✕</button>
+        <h2>Enable NFC</h2>
+        <ol>
+          <li><strong>Enable NFC on your device</strong><br>Go to Settings → Connections → NFC</li>
+          <li><strong>Try Chrome</strong><br>Web NFC may not work in your browser. You could test with Chrome.</li>
+          <li><strong>Grant NFC permission</strong><br>Go to Settings → Apps → [Your Browser] → Permissions → NFC</li>
+          <li><strong>Check with official NFC</strong><br><a href="https://googlechrome.github.io/samples/web-nfc/" target="_blank" style="color: #ccc; text-decoration: underline;">Test demo ↗</a></li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="player-section dimmable" id="playerSection">
+      <div class="track-info">
+        <div class="track-title" id="trackTitle">—</div>
+        <div class="track-counter" id="trackCounter">—</div>
+      </div>
+      <div id="audioContainer">
+        <div class="audio-visualizer visualizer-paused" id="visualizer">
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+        
+        <div class="progress-bar" id="progressBar">
+          <div class="progress-fill" id="progressFill"></div>
+          <div class="progress-dot" id="progressDot"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls-wrapper dimmable" id="controlsWrapper">
+      <div class="controls">
+        <button class="control-btn" id="prevBtn"><svg class="icon"><use href="#icon-backward"/></svg></button>
+        <button class="control-btn play-pause" id="playPauseBtn"><svg class="icon"><use href="#icon-play"/></svg></button>
+        <button class="control-btn" id="nextBtn" style="display: none;"><svg class="icon"><use href="#icon-forward"/></svg></button>
+      </div>
+      <div class="controls-secondary">
+        <button class="control-btn-small" id="shuffleBtn"><svg class="icon icon-sm"><use href="#icon-shuffle"/></svg></button>
+        <button class="control-btn-small" id="repeatBtn"><svg class="icon icon-sm"><use href="#icon-repeat"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="audioPlayer"></audio>
+
+  <script>
+    const state = {
+      playlist: [],
+      originalPlaylist: [],
+      currentTrackIndex: 0,
+      sessionTracks: [],
+      shuffleEnabled: false,
+      repeatEnabled: false,
+      visualizerActive: true,
+      ndefReader: null,
+      waitTime: 0
+    };
+
+    const dom = {
+      scanBtn: document.getElementById('scanBtn'),
+      nfcLog: document.getElementById('nfcLog'),
+      playerSection: document.getElementById('playerSection'),
+      trackTitle: document.getElementById('trackTitle'),
+      trackCounter: document.getElementById('trackCounter'),
+      visualizer: document.getElementById('visualizer'),
+      audioPlayer: document.getElementById('audioPlayer'),
+      audioContainer: document.getElementById('audioContainer'),
+      playPauseBtn: document.getElementById('playPauseBtn'),
+      prevBtn: document.getElementById('prevBtn'),
+      nextBtn: document.getElementById('nextBtn'),
+      shuffleBtn: document.getElementById('shuffleBtn'),
+      repeatBtn: document.getElementById('repeatBtn'),
+      errorMessage: document.getElementById('errorMessage'),
+      helpModal: document.getElementById('helpModal'),
+      modalClose: document.getElementById('modalClose'),
+      controlsWrapper: document.getElementById('controlsWrapper'),
+      progressBar: document.getElementById('progressBar'),
+      progressFill: document.getElementById('progressFill'),
+      progressDot: document.getElementById('progressDot')
+    };
+
+    const utils = {
+      isValidUrl(url) {
+        try {
+          const parsed = new URL(url);
+          return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+        } catch {
+          return false;
+        }
+      },
+
+      isAudioUrl(url) {
+        const exts = ['.mp3', '.wav', '.flac', '.aac', '.m4a', '.ogg', '.wma'];
+        return exts.some(ext => url.toLowerCase().includes(ext));
+      },
+
+      shuffleArray(arr) {
+        const copy = [...arr];
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      },
+
+      async extractTitle(url) {
+        try {
+          const urlObj = new URL(url);
+          const pathname = urlObj.pathname;
+          const filename = pathname.substring(pathname.lastIndexOf('/') + 1).split('?')[0];
+          let title = decodeURIComponent(filename.replace(/\.[^.]+$/, '')) || 'Unknown';
+          
+          title = title.replace(/-/g, ' ').replace(/^\d+\s*/, '').trim();
+          title = title.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+          
+          return title || 'Unknown';
+        } catch {
+          return 'Unknown';
+        }
+      },
+
+      async parsePlaylist(url) {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          
+          const text = await response.text();
+          const tracks = [];
+          
+          text.split('\n').forEach(line => {
+            const trimmed = line.trim();
+            if (trimmed && !trimmed.startsWith('#') && trimmed.startsWith('http')) {
+              if (utils.isValidUrl(trimmed)) {
+                tracks.push(trimmed);
+              }
+            }
+          });
+          
+          return tracks;
+        } catch (error) {
+          console.error('Playlist parse error:', error);
+          ui.showError('Failed to load playlist');
+          return [];
+        }
+      }
+    };
+
+    const ui = {
+      showError(message, showModal = false) {
+        const icon = showModal ? ' ⓘ' : '';
+        dom.errorMessage.innerHTML = message + icon;
+        dom.errorMessage.classList.add('active');
+        dom.errorMessage.style.cursor = showModal ? 'pointer' : 'default';
+        setTimeout(() => dom.errorMessage.classList.remove('active'), 5000);
+      },
+
+      updateNfcLog(id, url) {
+        dom.nfcLog.textContent = `Scanned.\n${id}\n${url}`;
+        dom.nfcLog.classList.add('active');
+      },
+
+      async updateTrackDisplay() {
+        if (state.playlist.length === 0) return;
+        
+        const track = state.playlist[state.currentTrackIndex];
+        const title = await utils.extractTitle(track);
+        dom.trackTitle.textContent = title;
+
+        const total = state.playlist.length;
+        if (total > 1) {
+          dom.nextBtn.style.display = 'flex';
+          dom.trackCounter.textContent = `${state.currentTrackIndex + 1} / ${total}`;
+          dom.trackCounter.classList.add('active');
+        } else {
+          dom.nextBtn.style.display = 'none';
+          dom.trackCounter.classList.remove('active');
+        }
+
+        dom.nfcLog.style.display = 'none';
+      },
+
+      updateButtonStates() {
+        dom.shuffleBtn.classList.toggle('active', state.shuffleEnabled);
+        dom.repeatBtn.classList.toggle('active', state.repeatEnabled);
+      },
+
+      toggleDim() {
+        state.visualizerActive = !state.visualizerActive;
+        document.querySelectorAll('.dimmable').forEach(el => el.classList.toggle('dim'));
+      }
+    };
+
+    const player = {
+      async loadAndPlay(url, autoPlay = false, options = {}) {
+        console.log('loadAndPlay called with:', { url, autoPlay, options });
+        
+        if (!utils.isValidUrl(url)) {
+          console.error('Invalid URL:', url);
+          ui.showError('Invalid URL');
+          return;
+        }
+
+        const urlObj = new URL(url);
+        if (urlObj.searchParams.has('wait')) {
+          state.waitTime = parseInt(urlObj.searchParams.get('wait'), 10) || 0;
+          console.log('Wait time from URL:', state.waitTime);
+        }
+
+        if (url.toLowerCase().endsWith('.m3u') || url.toLowerCase().endsWith('.m3u8')) {
+          console.log('Parsing playlist from:', url);
+          state.playlist = await utils.parsePlaylist(url);
+          console.log('Playlist loaded, tracks:', state.playlist.length);
+          if (state.playlist.length === 0) {
+            console.error('Playlist is empty');
+            ui.showError('Failed to load playlist');
+            return;
+          }
+        } else {
+          state.playlist = [url];
+          console.log('Single track loaded:', url);
+        }
+
+        state.originalPlaylist = [...state.playlist];
+        state.currentTrackIndex = 0;
+
+        if (options.shuffle) {
+          state.playlist = utils.shuffleArray(state.playlist);
+          console.log('Playlist shuffled');
+        }
+        
+        state.shuffleEnabled = options.shuffle || false;
+        state.repeatEnabled = options.repeat || false;
+
+        state.playlist.forEach(track => {
+          if (!state.sessionTracks.includes(track)) {
+            state.sessionTracks.push(track);
+          }
+        });
+
+        console.log('Session tracks:', state.sessionTracks.length);
+        ui.updateButtonStates();
+        dom.playerSection.classList.add('active');
+        await ui.updateTrackDisplay();
+        this.playTrack(state.currentTrackIndex, autoPlay);
+      },
+
+      playTrack(index, autoPlay = false) {
+        if (index < 0 || index >= state.playlist.length) {
+          console.warn('Invalid track index:', index);
+          return;
+        }
+        
+        state.currentTrackIndex = index;
+        const trackUrl = state.playlist[index];
+        
+        console.log('Playing track', index + 1, 'of', state.playlist.length, ':', trackUrl);
+        
+        ui.updateTrackDisplay();
+
+        dom.audioContainer.style.display = 'block';
+        dom.audioPlayer.src = trackUrl;
+        dom.visualizer.classList.add('visualizer-paused');
+        if (autoPlay) {
+          console.log('Auto-playing in 3 seconds...');
+          setTimeout(() => dom.audioPlayer.play(), 3000);
+        }
+        
+        dom.playPauseBtn.innerHTML = '<svg class="icon"><use href="#icon-play"/></svg>';
+      },
+
+      updateProgress() {
+        if (!dom.audioPlayer.duration || dom.audioPlayer.duration === Infinity) return;
+        
+        const percent = (dom.audioPlayer.currentTime / dom.audioPlayer.duration) * 100;
+        dom.progressFill.style.width = percent + '%';
+        dom.progressDot.style.left = percent + '%';
+      },
+
+      async startScanning() {
+        if (!('NDEFReader' in window)) {
+          console.error('NFC not supported on this device');
+          ui.showError('NFC not supported on this device', true);
+          return;
+        }
+
+        console.log('Starting NFC scan...');
+        
+        state.ndefReader = null;
+
+        dom.nfcLog.style.display = 'block';
+        dom.scanBtn.classList.add('scanning');
+        dom.nfcLog.textContent = 'Scanning...';
+        dom.nfcLog.classList.add('active');
+
+        try {
+          const reader = new NDEFReader();
+          state.ndefReader = reader;
+
+          await reader.scan();
+          console.log('NFC reader initialized and scanning...');
+
+          reader.onreading = (event) => {
+            const tagId = event.serialNumber || 'Unknown';
+            console.log('NFC tag detected. ID:', tagId);
+            
+            let foundUrl = null;
+
+            event.message.records.forEach(record => {
+              if (!foundUrl) {
+                if (record.recordType === 'text') {
+                  const text = new TextDecoder().decode(record.data);
+                  console.log('Text record found:', text);
+                  if (text.startsWith('http://') || text.startsWith('https://')) {
+                    foundUrl = text;
+                  }
+                } else if (record.recordType === 'url') {
+                  foundUrl = new TextDecoder().decode(record.data);
+                  console.log('URL record found:', foundUrl);
+                }
+              }
+            });
+
+            if (foundUrl) {
+              console.log('Loading URL from NFC tag:', foundUrl);
+              ui.updateNfcLog(tagId, foundUrl);
+              this.loadAndPlay(foundUrl, true);
+            } else {
+              console.warn('No URL found in NFC tag');
+              ui.showError('No URL found in tag', false);
+            }
+          };
+
+          reader.onreadingerror = () => {
+            console.error('NFC read error');
+            ui.showError('Error reading NFC tag', true);
+            dom.scanBtn.classList.remove('scanning');
+          };
+
+        } catch (error) {
+          console.error('NFC scan error:', error);
+          ui.showError(error.message || 'NFC scan failed', true);
+          dom.scanBtn.classList.remove('scanning');
+        }
+      }
+    };
+
+    dom.scanBtn.addEventListener('click', () => player.startScanning());
+
+    [dom.playPauseBtn, dom.prevBtn, dom.nextBtn, dom.shuffleBtn, dom.repeatBtn].forEach(btn => {
+      btn.addEventListener('click', e => e.stopPropagation());
+    });
+
+    dom.playPauseBtn.addEventListener('click', () => {
+      if (dom.audioPlayer.paused) {
+        dom.audioPlayer.play();
+        dom.playPauseBtn.innerHTML = '<svg class="icon"><use href="#icon-pause"/></svg>';
+        dom.visualizer.classList.remove('visualizer-paused');
+      } else {
+        dom.audioPlayer.pause();
+        dom.playPauseBtn.innerHTML = '<svg class="icon"><use href="#icon-play"/></svg>';
+        dom.visualizer.classList.add('visualizer-paused');
+      }
+    });
+
+    dom.prevBtn.addEventListener('click', () => {
+      const wasPlaying = !dom.audioPlayer.paused;
+      if (state.currentTrackIndex > 0) {
+        player.playTrack(state.currentTrackIndex - 1);
+      } else {
+        dom.audioPlayer.currentTime = 0;
+      }
+      if (wasPlaying) {
+        dom.audioPlayer.play();
+      }
+    });
+
+    dom.nextBtn.addEventListener('click', () => {
+      const wasPlaying = !dom.audioPlayer.paused;
+      if (state.currentTrackIndex < state.playlist.length - 1) {
+        player.playTrack(state.currentTrackIndex + 1);
+      } else {
+        player.playTrack(0);
+      }
+      if (wasPlaying) {
+        dom.audioPlayer.play();
+      }
+    });
+
+    dom.shuffleBtn.addEventListener('click', () => {
+      state.shuffleEnabled = !state.shuffleEnabled;
+      
+      if (state.shuffleEnabled && state.playlist.length > 1) {
+        const currentTrack = state.playlist[state.currentTrackIndex];
+        const otherTracks = state.originalPlaylist.filter(track => track !== currentTrack);
+        const shuffled = utils.shuffleArray(otherTracks);
+        state.playlist = [currentTrack, ...shuffled];
+        state.currentTrackIndex = 0;
+        console.log('Playlist shuffled');
+      } else if (!state.shuffleEnabled) {
+        const currentTrack = state.playlist[state.currentTrackIndex];
+        state.playlist = [...state.originalPlaylist];
+        state.currentTrackIndex = state.playlist.indexOf(currentTrack);
+        ui.updateTrackDisplay();
+        console.log('Playlist restored to original order');
+      }
+      
+      ui.updateButtonStates();
+    });
+
+    dom.repeatBtn.addEventListener('click', () => {
+      state.repeatEnabled = !state.repeatEnabled;
+      ui.updateButtonStates();
+    });
+
+    dom.visualizer.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dom.playerSection.click();
+    });
+
+    dom.playerSection.addEventListener('click', () => ui.toggleDim());
+
+    dom.errorMessage.addEventListener('click', () => {
+      if (dom.errorMessage.style.cursor === 'pointer') {
+        dom.helpModal.classList.add('active');
+      }
+    });
+
+    dom.modalClose.addEventListener('click', () => {
+      dom.helpModal.classList.remove('active');
+    });
+
+    dom.helpModal.addEventListener('click', (e) => {
+      if (e.target === dom.helpModal) {
+        dom.helpModal.classList.remove('active');
+      }
+    });
+
+    dom.audioPlayer.addEventListener('play', () => {
+      dom.playPauseBtn.innerHTML = '<svg class="icon"><use href="#icon-pause"/></svg>';
+      dom.visualizer.classList.remove('visualizer-paused');
+    });
+
+    dom.audioPlayer.addEventListener('pause', () => {
+      dom.playPauseBtn.innerHTML = '<svg class="icon"><use href="#icon-play"/></svg>';
+      dom.visualizer.classList.add('visualizer-paused');
+    });
+
+    dom.audioPlayer.addEventListener('timeupdate', () => {
+      player.updateProgress();
+    });
+
+    dom.audioPlayer.addEventListener('durationchange', () => {
+      player.updateProgress();
+    });
+
+    dom.progressBar.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!dom.audioPlayer.duration || dom.audioPlayer.duration === Infinity) return;
+      
+      const rect = dom.progressBar.getBoundingClientRect();
+      const percent = (e.clientX - rect.left) / rect.width;
+      dom.audioPlayer.currentTime = percent * dom.audioPlayer.duration;
+    });
+
+    dom.audioPlayer.addEventListener('ended', () => {
+      if (state.currentTrackIndex < state.playlist.length - 1) {
+        setTimeout(() => {
+          player.playTrack(state.currentTrackIndex + 1);
+          dom.audioPlayer.play();
+        }, state.waitTime * 1000);
+      } else if (state.repeatEnabled) {
+        setTimeout(() => {
+          player.playTrack(0);
+          dom.audioPlayer.play();
+        }, state.waitTime * 1000);
+      } else {
+        player.playTrack(0);
+      }
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('wait')) {
+      state.waitTime = parseInt(params.get('wait'), 10) || 0;
+    }
+    if (params.has('url')) {
+      const url = params.get('url');
+      const options = {
+        shuffle: params.has('shuffle') && params.get('shuffle') === '1',
+        repeat: params.has('repeat') && params.get('repeat') === '1'
+      };
+      if (utils.isValidUrl(url)) {
+        player.loadAndPlay(url, false, options);
+      } else {
+        ui.showError('Invalid URL parameter');
+      }
+    }
+  </script>
+</body>
+</html>
