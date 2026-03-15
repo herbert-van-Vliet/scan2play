@@ -9,12 +9,13 @@ A lightweight, client-side NFC-enabled audio player for scanning and playing aud
 - **M3U Playlist Support** — Automatically parses M3U/M3U8 playlists and loads all tracks.
 - **Smart Metadata** — Extracts track titles from ID3 tags (MP3); falls back gracefully to filename extraction with formatting (removes leading numbers, replaces hyphens with spaces, applies proper case).
 - **Animated Waveform Visualizer** — Smooth wave animation that syncs with playback (pauses when audio is paused).
-- **Playback Controls** — Previous/restart, play/pause, next track (multi-track only).
+- **Playback Controls** — Previous/restart, play/pause, next track (multi-track playlists only).
 - **Shuffle** — Shuffle playlist once on load via `?shuffle=1` parameter, or toggle via button.
 - **Repeat** — Repeat playlist (jump to track 1 when end reached) via `?repeat=1` parameter, or toggle via button.
 - **Session Memory** — Remembers all scanned/played tracks in the current session.
 - **Dark Mode** — Optimized dark theme with high contrast.
-- **Direct URL Playback** — Use `?url=...` query parameter to auto-play audio on page load with optional 3-second delay before auto-play.
+- **Direct URL Playback** — Use `?url=...` query parameter to auto-play audio on page load.
+- **Configurable Wait Time** — Set delay between tracks with `?wait=<seconds>` parameter (default: 0).
 - **Pure Client-Side** — No backend required. All processing happens in the browser.
 - **URL Validation** — Only accepts `http://` and `https://` URLs. Silently rejects unsafe input.
 
@@ -25,10 +26,10 @@ A lightweight, client-side NFC-enabled audio player for scanning and playing aud
 1. Open the app on an Android device (Chrome or Edge with Web NFC API support).
 2. Tap the large NFC icon to activate scanning.
 3. Hold your NFC-tagged page near the device to read the tag.
-4. The player automatically extracts the URL and loads the track (waits 3 seconds then auto-plays).
+4. The player automatically extracts the URL and loads the track.
 
-NFC tags can include query parameters for shuffle/repeat:
-- `https://example.com/audio.mp3?shuffle=1&repeat=1`
+NFC tags can include query parameters for shuffle, repeat, and wait time:
+- `https://example.com/audio.mp3?shuffle=1&repeat=1&wait=2`
 
 ### Direct URL Playback
 
@@ -43,12 +44,13 @@ https://player.metafor.no/?url=https://example.com/audio.mp3
 - `url` — URL of media file or M3U playlist (required for auto-play)
 - `shuffle` — Set to `1` to shuffle playlist on load
 - `repeat` — Set to `1` to enable repeat (playlist loops back to track 1)
+- `wait` — Delay in seconds between tracks (default: 0)
 
 Examples:
 ```
 https://player.metafor.no/?url=https://example.com/playlist.m3u&shuffle=1
 https://player.metafor.no/?url=https://example.com/playlist.m3u&repeat=1
-https://player.metafor.no/?url=https://example.com/playlist.m3u&shuffle=1&repeat=1
+https://player.metafor.no/?url=https://example.com/playlist.m3u&shuffle=1&repeat=1&wait=2
 ```
 
 ### M3U Playlists
@@ -57,7 +59,7 @@ If the URL points to an M3U/M3U8 file, the app automatically:
 - Parses all tracks in the playlist
 - Loads them into the session
 - Optionally shuffles (if `shuffle=1`)
-- Starts playing the first track after 3 seconds (if auto-playing)
+- Starts playing the first track
 - Enables next/previous navigation
 
 Example:
@@ -78,7 +80,7 @@ Write NFC tags with a URL payload using an NFC writing app (e.g., NFC Tools for 
 - **Content:** A complete URL pointing to audio or a playlist
   - Example: `https://example.com/song.mp3`
   - Example: `https://example.com/playlist.m3u`
-  - Example: `https://example.com/song.mp3?shuffle=1&repeat=1`
+  - Example: `https://example.com/song.mp3?shuffle=1&repeat=1&wait=2`
 
 ## Browser Compatibility
 
@@ -102,7 +104,7 @@ Write NFC tags with a URL payload using an NFC writing app (e.g., NFC Tools for 
 ## Playback Behavior
 
 - **Manual track changes** (prev/next buttons) — Play immediately
-- **Auto-advance** (track ends or NFC scan) — Wait 3 seconds before auto-playing next track
+- **Track end** — Waits for configured wait time (default: 0 seconds), then advances to next track
 - **Single track with repeat enabled** — Repeats the same track when it ends
 - **Playlist with repeat enabled** — Jumps back to track 1 when playlist ends
 - **Playlist with shuffle enabled** — Playlist is shuffled once on load
