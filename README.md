@@ -1,10 +1,11 @@
 # scan2play
 
-A lightweight, client-side NFC-enabled audio player for scanning and playing audio content from NFC tags embedded in physical books or materials.
+A lightweight, client-side NFC- and QR-enabled audio player for scanning and playing audio content from NFC tags or QR codes embedded in physical books or materials.
 
 ## Features
 
 - **NFC Tag Scanning** — Tap the large NFC icon to activate scanning. Continuously reads NFC tags without requiring repeated button presses.
+- **QR Code Scanning** — Tap the QR icon to open a camera viewfinder. Automatically detects QR codes containing URLs and loads them for playback.
 - **URL-Based Playback** — Extracts URLs from NFC tags and plays audio directly.
 - **M3U Playlist Support** — Automatically parses M3U/M3U8 playlists and loads all tracks.
 - **Smart Metadata** — Extracts track titles from ID3 tags (MP3); falls back gracefully to filename extraction with formatting (removes leading numbers, replaces hyphens with spaces, applies proper case).
@@ -84,9 +85,9 @@ Write NFC tags with a URL payload using an NFC writing app (e.g., NFC Tools for 
 
 ## Browser Compatibility
 
-- ✅ **Android Chrome/Edge** — Full support with Web NFC API
-- ⚠️ **iOS** — NFC reading available on iOS 13.1+, but Web NFC API not publicly supported. Requires native app.
-- ✅ **Desktop** — Direct URL mode works on all modern browsers (no scanning).
+- ✅ **Android Chrome/Edge** — Full support with Web NFC API and QR camera scanning
+- ⚠️ **iOS** — NFC reading available on iOS 13.1+, but Web NFC API not publicly supported. QR scanning works via camera on iOS 14.3+.
+- ✅ **Desktop** — Direct URL mode works on all modern browsers (no scanning). QR scanning works if a camera is available.
 
 **Device Detection:** If NFC is not supported, the app displays "NFC is not supported on this device. Please scan a QR code." instead of "Tap to scan..."
 
@@ -95,6 +96,7 @@ Write NFC tags with a URL payload using an NFC writing app (e.g., NFC Tools for 
 | Control | Action |
 |---------|--------|
 | NFC Icon | Start/continue NFC scanning |
+| QR Icon | Open camera viewfinder for QR code scanning |
 | Previous (⏮) | Go to previous track, or restart current track on single-track playback |
 | Play/Pause (▶/⏸) | Toggle playback |
 | Next (⏭) | Go to next track (only visible for multi-track playlists) |
@@ -133,7 +135,7 @@ The browser's CORS policy applies. Audio URLs must be from servers that allow cr
 
 ## Deployment
 
-1. Place `player.html`, `manifest.json`, `scan2play_icon_192x192.png`, and `scan2play_icon_512x512.png` on your web server.
+1. Place `index.html`, `jsQR.min.js`, `sw.js`, `manifest.json`, `scan2play_icon_192x192.png`, and `scan2play_icon_512x512.png` on your web server.
 2. Update the domain in your NFC tag URLs and documentation.
 3. Ensure server sends proper CORS headers for audio files:
    ```
