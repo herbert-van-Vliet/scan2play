@@ -1,12 +1,14 @@
 // sw.js
 // scan2play service worker
 // (c) 2026, info@remark.no
-// v1.6.0
+// v1.8.0
 
-const CACHE_NAME = 'scan2play-v7';
+const CACHE_NAME = 'scan2play-v9';
 const ASSETS = [
   'style.css',
+  'js/scan2play.js',
   'js/jsQR/jsQR.js',
+  'js/qrcodejs/qrcode.min.js',
   'manifest.json',
   'favicon.svg',
   'scan2play_icon_192x192.png',
@@ -19,7 +21,8 @@ const ASSETS = [
   'icons/forward-step-solid-full.svg',
   'icons/shuffle-solid-full.svg',
   'icons/repeat-solid-full.svg',
-  'icons/arrow-up-right-from-square-solid-full.svg'
+  'icons/arrow-up-right-from-square-solid-full.svg',
+  'icons/share-nodes-solid-full.svg'
 ];
 
 self.addEventListener('install', event => {

@@ -1,7 +1,7 @@
 /* style.css */
 /* scan2play */
 /* (c) 2026, info@remark.no */
-/* v1.2.0 */
+/* v1.4.0 */
 
 :root {
   --bg-dark: #0a0a0a;
@@ -519,6 +519,15 @@ video {
 
 .modal-close:hover {
   color: var(--text-primary);
+}
+
+.modal-share {
+  text-align: center;
+}
+
+.share-qr-code {
+  display: inline-block;
+  margin: 1rem auto;
 }
 
 .modal h2 {
