@@ -9,7 +9,7 @@
   Licensed under Creative Commons Attribution-NonCommercial 4.0 (CC BY-NC)
   See LICENSE file for details
 -->
-<!-- v1.5.3 -->
+<!-- v1.6.1 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -101,11 +101,18 @@
           <button class="control-btn" id="nextBtn" style="display: none;"><svg class="icon"><use href="#icon-forward"/></svg></button>
         </div>
         <div class="controls-secondary">
+          <button class="control-btn-small" id="bookmarkBtn"><svg class="icon icon-sm"><use href="#icon-bookmark"/></svg></button>
           <button class="control-btn-small" id="shuffleBtn"><svg class="icon icon-sm"><use href="#icon-shuffle"/></svg></button>
           <button class="control-btn-small" id="repeatBtn"><svg class="icon icon-sm"><use href="#icon-repeat"/></svg></button>
           <button class="control-btn-small" id="shareBtn"><svg class="icon icon-sm"><use href="#icon-share-nodes"/></svg></button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="bookmarkModal">
+    <div class="modal modal-bookmark">
+      <ul class="bookmark-list" id="bookmarkList"></ul>
     </div>
   </div>
 

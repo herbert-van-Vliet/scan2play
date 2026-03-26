@@ -1,6 +1,6 @@
 // scan2play.js
 // (c) 2026, info@remark.no
-// v1.1.0
+// v1.2.1
 
 const ICONS = {
   'icon-nfc':         './icons/nfc-symbol-brands-solid-full.svg',
@@ -12,7 +12,9 @@ const ICONS = {
   'icon-shuffle':     './icons/shuffle-solid-full.svg',
   'icon-repeat':      './icons/repeat-solid-full.svg',
   'icon-share':       './icons/arrow-up-right-from-square-solid-full.svg',
-  'icon-share-nodes': './icons/share-nodes-solid-full.svg'
+  'icon-share-nodes': './icons/share-nodes-solid-full.svg',
+  'icon-bookmark':    './icons/bookmark-regular-full.svg',
+  'icon-trash':       './icons/trash-can-regular-full.svg'
 };
 
 async function loadIcon(id, path) {
@@ -84,6 +86,9 @@ const dom = {
   shareQrCode: document.getElementById('shareQrCode'),
   shareUrl: document.getElementById('shareUrl'),
   shareUrlFeedback: document.getElementById('shareUrlFeedback'),
+  bookmarkBtn: document.getElementById('bookmarkBtn'),
+  bookmarkModal: document.getElementById('bookmarkModal'),
+  bookmarkList: document.getElementById('bookmarkList'),
   qrBtn: document.getElementById('qrBtn'),
   qrOverlay: document.getElementById('qrOverlay'),
   qrVideo: document.getElementById('qrVideo'),
@@ -534,7 +539,7 @@ dom.scanBtn.addEventListener('click', () => player.startScanning());
 dom.qrBtn.addEventListener('click', () => qr.start());
 dom.qrClose.addEventListener('click', () => qr.stop());
 
-[dom.playPauseBtn, dom.prevBtn, dom.nextBtn, dom.shuffleBtn, dom.repeatBtn, dom.shareBtn].forEach(btn => {
+[dom.playPauseBtn, dom.prevBtn, dom.nextBtn, dom.shuffleBtn, dom.repeatBtn, dom.shareBtn, dom.bookmarkBtn].forEach(btn => {
   btn.addEventListener('click', e => e.stopPropagation());
 });
 
@@ -673,6 +678,93 @@ dom.progressBar.addEventListener('click', (e) => {
   const rect = dom.progressBar.getBoundingClientRect();
   const percent = (e.clientX - rect.left) / rect.width;
   media.currentTime = percent * media.duration;
+});
+
+const BOOKMARK_KEY = 'scan2play_bookmarks';
+
+function bookmarkGetAll() {
+  try { return JSON.parse(localStorage.getItem(BOOKMARK_KEY)) || []; }
+  catch { return []; }
+}
+
+function bookmarkSave(list) {
+  localStorage.setItem(BOOKMARK_KEY, JSON.stringify(list));
+}
+
+function bookmarkStripUrl(url) {
+  try {
+    const parsed = new URL(url);
+    // If it has a ?url= param, return just that inner URL
+    if (parsed.searchParams.has('url')) {
+      return parsed.searchParams.get('url');
+    }
+    return url;
+  } catch {
+    return url;
+  }
+}
+
+function bookmarkDisplayLabel(url) {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname + parsed.pathname;
+  } catch {
+    return url;
+  }
+}
+
+function bookmarkRender() {
+  const list = bookmarkGetAll();
+  dom.bookmarkList.innerHTML = '';
+  list.forEach((url, index) => {
+    const li = document.createElement('li');
+    li.className = 'bookmark-item';
+
+    const label = document.createElement('span');
+    label.className = 'bookmark-label';
+    label.textContent = bookmarkDisplayLabel(url);
+    label.addEventListener('click', () => {
+      dom.bookmarkModal.classList.remove('active');
+      player.loadAndPlay(url, true);
+    });
+
+    const del = document.createElement('button');
+    del.className = 'bookmark-delete';
+    del.innerHTML = '<svg class="icon icon-sm"><use href="#icon-trash"/></svg>';
+    del.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const updated = bookmarkGetAll().filter((_, i) => i !== index);
+      bookmarkSave(updated);
+      if (updated.length === 0) {
+        dom.bookmarkModal.classList.remove('active');
+      } else {
+        bookmarkRender();
+      }
+    });
+
+    li.appendChild(label);
+    li.appendChild(del);
+    dom.bookmarkList.appendChild(li);
+  });
+}
+
+dom.bookmarkBtn.addEventListener('click', () => {
+  if (state.sourceUrl) {
+    const stripped = bookmarkStripUrl(state.sourceUrl);
+    const list = bookmarkGetAll();
+    if (!list.includes(stripped)) {
+      list.unshift(stripped);
+      bookmarkSave(list);
+    }
+  }
+  bookmarkRender();
+  dom.bookmarkModal.classList.add('active');
+});
+
+dom.bookmarkModal.addEventListener('click', (e) => {
+  if (e.target === dom.bookmarkModal) {
+    dom.bookmarkModal.classList.remove('active');
+  }
 });
 
 dom.shareBtn.addEventListener('click', () => {
