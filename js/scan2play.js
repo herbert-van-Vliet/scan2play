@@ -1,6 +1,6 @@
 // scan2play.js
 // (c) 2026, info@remark.no
-// v1.0.2
+// v1.1.0
 
 const ICONS = {
   'icon-nfc':         './icons/nfc-symbol-brands-solid-full.svg',
@@ -51,7 +51,8 @@ const state = {
   repeatEnabled: false,
   visualizerActive: true,
   ndefReader: null,
-  waitTime: 0
+  waitTime: 0,
+  sourceUrl: null
 };
 
 const dom = {
@@ -79,7 +80,10 @@ const dom = {
   mediaWrapper: document.getElementById('mediaWrapper'),
   shareBtn: document.getElementById('shareBtn'),
   shareModal: document.getElementById('shareModal'),
+  shareModalClose: document.getElementById('shareModalClose'),
   shareQrCode: document.getElementById('shareQrCode'),
+  shareUrl: document.getElementById('shareUrl'),
+  shareUrlFeedback: document.getElementById('shareUrlFeedback'),
   qrBtn: document.getElementById('qrBtn'),
   qrOverlay: document.getElementById('qrOverlay'),
   qrVideo: document.getElementById('qrVideo'),
@@ -220,6 +224,8 @@ const player = {
       ui.showError('Invalid URL');
       return;
     }
+
+    state.sourceUrl = url;
 
     const urlObj = new URL(url);
     if (urlObj.searchParams.has('wait')) {
@@ -405,15 +411,32 @@ const qr = {
   animFrame: null,
   stream: null,
   scanning: false,
+  lastTick: 0,
+  TICK_INTERVAL: 200,
+  SCAN_WIDTH: 640,
+  useNative: false,
+  detector: null,
 
   async start() {
-    if (!jsQR) {
+    if (!jsQR && !('BarcodeDetector' in window)) {
       ui.showError('QR scanner not available');
       return;
     }
     try {
+      if ('BarcodeDetector' in window) {
+        const supported = await BarcodeDetector.getSupportedFormats();
+        if (supported.includes('qr_code')) {
+          this.detector = new BarcodeDetector({ formats: ['qr_code'] });
+          this.useNative = true;
+          console.log('Using native BarcodeDetector');
+        }
+      }
       this.stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } }
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
       });
       dom.qrVideo.srcObject = this.stream;
       dom.qrOverlay.classList.add('active');
@@ -429,46 +452,67 @@ const qr = {
   scan() {
     const canvas = dom.qrCanvas;
     const video = dom.qrVideo;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const ctx = this.useNative ? null : canvas.getContext('2d', { willReadFrequently: true });
 
-    const tick = () => {
+    const tick = (timestamp) => {
       if (!this.scanning) return;
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+      this.animFrame = requestAnimationFrame(tick);
+
+      if (timestamp - this.lastTick < this.TICK_INTERVAL) return;
+      this.lastTick = timestamp;
+
+      if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+
+      if (this.useNative) {
+        this.detector.detect(video)
+          .then(codes => {
+            if (!this.scanning) return;
+            if (codes.length > 0) {
+              const url = codes[0].rawValue.trim();
+              console.log('QR code detected (native):', url);
+              this.handleCode(url);
+            }
+          })
+          .catch(() => {});
+      } else {
+        const scale = Math.min(1, this.SCAN_WIDTH / video.videoWidth);
+        canvas.width = Math.round(video.videoWidth * scale);
+        canvas.height = Math.round(video.videoHeight * scale);
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: 'dontInvert'
+          inversionAttempts: 'attemptBoth'
         });
         if (code) {
-          const url = code.data.trim();
-          console.log('QR code detected:', url);
-          if (utils.isValidUrl(url)) {
-            this.stop();
-            if (resolverAvailable) {
-              dom.qrStatus.textContent = 'Resolving URL...';
-              fetch(`${RESOLVER_URL}?url=${encodeURIComponent(url)}`)
-                .then(response => response.ok ? response.text() : Promise.reject(response.status))
-                .then(resolvedUrl => {
-                  console.log('Resolved URL:', resolvedUrl);
-                  handleScannedUrl(resolvedUrl.trim());
-                })
-                .catch(err => {
-                  console.warn('Redirect resolve failed, using original URL:', err);
-                  handleScannedUrl(url);
-                });
-            } else {
-              handleScannedUrl(url);
-            }
-          } else {
-            dom.qrStatus.textContent = 'QR code found, but no valid URL';
-          }
+          console.log('QR code detected (jsQR):', code.data);
+          this.handleCode(code.data.trim());
         }
       }
-      this.animFrame = requestAnimationFrame(tick);
     };
     this.animFrame = requestAnimationFrame(tick);
+  },
+
+  handleCode(url) {
+    if (!utils.isValidUrl(url)) {
+      dom.qrStatus.textContent = 'QR code found, but no valid URL';
+      return;
+    }
+    this.stop();
+    if (resolverAvailable) {
+      dom.qrStatus.textContent = 'Resolving URL...';
+      fetch(`${RESOLVER_URL}?url=${encodeURIComponent(url)}`)
+        .then(response => response.ok ? response.text() : Promise.reject(response.status))
+        .then(resolvedUrl => {
+          console.log('Resolved URL:', resolvedUrl);
+          handleScannedUrl(resolvedUrl.trim());
+        })
+        .catch(err => {
+          console.warn('Redirect resolve failed, using original URL:', err);
+          handleScannedUrl(url);
+        });
+    } else {
+      handleScannedUrl(url);
+    }
   },
 
   stop() {
@@ -632,9 +676,8 @@ dom.progressBar.addEventListener('click', (e) => {
 });
 
 dom.shareBtn.addEventListener('click', () => {
-  if (state.playlist.length === 0) return;
-  const trackUrl = state.playlist[state.currentTrackIndex];
-  const params = new URLSearchParams({ url: trackUrl });
+  if (!state.sourceUrl) return;
+  const params = new URLSearchParams({ url: state.sourceUrl });
   if (state.shuffleEnabled) params.set('shuffle', '1');
   if (state.repeatEnabled) params.set('repeat', '1');
   if (state.waitTime > 0) params.set('wait', state.waitTime);
@@ -644,15 +687,47 @@ dom.shareBtn.addEventListener('click', () => {
     text: playerUrl,
     width: 200,
     height: 200,
-    colorDark: '#ffffff',
-    colorLight: '#1a1a1a',
+    colorDark: '#000000',
+    colorLight: '#ffffff',
     correctLevel: QRCode.CorrectLevel.M
   });
+  dom.shareUrl.textContent = playerUrl;
   dom.shareModal.classList.add('active');
 });
 
-dom.shareModal.addEventListener('click', () => {
+function copyShareUrl() {
+  if (!navigator.clipboard) return;
+  const url = dom.shareUrl.textContent;
+  if (!url) return;
+  navigator.clipboard.writeText(url)
+    .then(() => flashShareUrl('URL copied.'))
+    .catch(() => flashShareUrl('Could not copy URL.'));
+}
+
+function flashShareUrl(message) {
+  dom.shareUrlFeedback.textContent = message;
+  setTimeout(() => { dom.shareUrlFeedback.textContent = ''; }, 2000);
+}
+
+dom.shareQrCode.addEventListener('click', (e) => {
+  e.stopPropagation();
+  copyShareUrl();
+});
+
+dom.shareUrl.addEventListener('click', (e) => {
+  e.stopPropagation();
+  copyShareUrl();
+});
+
+dom.shareModalClose.addEventListener('click', (e) => {
+  e.stopPropagation();
   dom.shareModal.classList.remove('active');
+});
+
+dom.shareModal.addEventListener('click', (e) => {
+  if (e.target === dom.shareModal) {
+    dom.shareModal.classList.remove('active');
+  }
 });
 
 const params = new URLSearchParams(window.location.search);

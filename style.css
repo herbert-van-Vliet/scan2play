@@ -1,7 +1,7 @@
 /* style.css */
 /* scan2play */
 /* (c) 2026, info@remark.no */
-/* v1.4.0 */
+/* v1.5.5 */
 
 :root {
   --bg-dark: #0a0a0a;
@@ -502,8 +502,8 @@ video {
 
 .modal-close {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
+  top: 0.25rem;
+  right: 0.25rem;
   background: none;
   border: none;
   color: #ccc;
@@ -527,7 +527,33 @@ video {
 
 .share-qr-code {
   display: inline-block;
-  margin: 1rem auto;
+  margin: 1.5rem auto 0.5rem;
+  cursor: pointer;
+  background: #ffffff;
+  padding: 12px;
+  border-radius: 4px;
+}
+
+.share-url {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  word-break: break-all;
+  margin-bottom: 0.25rem;
+  cursor: pointer;
+}
+
+.share-url-feedback {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: var(--accent);
+  height: 1.4em;
+  margin-bottom: 0.25rem;
+}
+
+.share-url:hover,
+.share-qr-code:hover {
+  opacity: 0.8;
 }
 
 .modal h2 {
@@ -576,5 +602,14 @@ svg.icon-sm {
     width: 60px;
     height: 60px;
     font-size: 28px;
+  }
+
+  .modal {
+    padding: 1.5rem 0;
+  }
+
+  .share-url,
+  .share-url-feedback {
+    padding: 0 1.5rem;
   }
 }
