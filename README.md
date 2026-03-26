@@ -17,6 +17,7 @@ A lightweight, client-side NFC- and QR-enabled audio and video player for scanni
 - **Shuffle** — Shuffle playlist once on load via `?shuffle=1` parameter, or toggle via button.
 - **Repeat** — Repeat playlist (jump to track 1 when end reached) via `?repeat=1` parameter, or toggle via button.
 - **Share** — Share button generates a QR code and player URL for the current source. Tap QR or URL to copy to clipboard.
+- **Bookmarks** — Bookmark button saves the current source URL to localStorage. Open the bookmark list to replay saved sources or delete them. List auto-closes when the last bookmark is removed.
 - **Session Memory** — Remembers all scanned/played tracks in the current session.
 - **Dark Mode** — Optimized dark theme with high contrast.
 - **Direct URL Playback** — Use `?url=...` query parameter to auto-play media on page load.
@@ -110,6 +111,7 @@ Write NFC tags with a URL payload using an NFC writing app (e.g., NFC Tools for 
 | Next (⏭) | Go to next track (only visible for multi-track playlists) |
 | Shuffle (🔀) | Toggle shuffle mode (brightens green when active) |
 | Repeat (🔁) | Toggle repeat mode (brightens green when active) |
+| Bookmark | Save current source URL; open bookmark list to replay or delete saved sources |
 | Share | Show QR code and URL for the current source |
 
 ## Playback Behavior
@@ -154,7 +156,7 @@ A service worker (`sw.js`) precaches all static assets on first visit. Subsequen
    - `index.html`, `style.css`, `sw.js`, `manifest.json`
    - `favicon.svg`, `scan2play_icon_192x192.png`, `scan2play_icon_512x512.png`
    - `js/scan2play.js`, `js/jsQR/jsQR.js`, `js/qrcodejs/qrcode.min.js`
-   - `icons/` — all SVG icon files
+   - `icons/` — all SVG icon files (including `bookmark-regular-full.svg` and `trash-can-regular-full.svg`)
    - `resolve/index.php` — optional, enables redirect resolution
 2. Ensure the server sends proper CORS headers for media files:
    ```
@@ -181,7 +183,7 @@ A service worker (`sw.js`) precaches all static assets on first visit. Subsequen
 
 Licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)
 
-© 2026 Remark
+© 2026 remark.no
 Contact: info@remark.no
 Repository: https://github.com/herbert-van-vliet/scan2play
 
