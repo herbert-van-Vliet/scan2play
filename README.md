@@ -1,23 +1,28 @@
 # scan2play
 
-A lightweight, client-side NFC- and QR-enabled audio player for scanning and playing audio content from NFC tags or QR codes embedded in physical books or materials.
+A lightweight, client-side NFC- and QR-enabled audio and video player for scanning and playing media content from NFC tags or QR codes embedded in physical books or materials.
 
 ## Features
 
-- **NFC Tag Scanning** — Tap the large NFC icon to activate scanning. Continuously reads NFC tags without requiring repeated button presses.
-- **QR Code Scanning** — Tap the QR icon to open a camera viewfinder. Automatically detects QR codes containing URLs and loads them for playback.
-- **URL-Based Playback** — Extracts URLs from NFC tags and plays audio directly.
+- **NFC Tag Scanning** — Tap the NFC icon to activate scanning. Continuously reads NFC tags without requiring repeated button presses. Hidden automatically on devices without NFC support.
+- **QR Code Scanning** — Tap the QR icon to open a camera viewfinder. Uses the native `BarcodeDetector` API where available, with jsQR as fallback. Automatically detects QR codes containing URLs and loads them for playback.
+- **Redirect Resolution** — Short URLs and redirects are resolved server-side via `resolve/index.php` before playback. Falls back gracefully if the resolver is unavailable.
+- **Player URL Detection** — If a scanned QR code points to the player itself (same origin, `?url=` parameter), the inner URL and parameters are extracted and used directly.
+- **URL-Based Playback** — Extracts URLs from NFC tags or QR codes and plays media directly.
 - **M3U Playlist Support** — Automatically parses M3U/M3U8 playlists and loads all tracks.
-- **Smart Metadata** — Extracts track titles from ID3 tags (MP3); falls back gracefully to filename extraction with formatting (removes leading numbers, replaces hyphens with spaces, applies proper case).
-- **Animated Waveform Visualizer** — Smooth wave animation that syncs with playback (pauses when audio is paused).
+- **Video Support** — Plays MP4, WebM, OGV, and MOV files natively via the `<video>` element.
+- **Smart Metadata** — Extracts track titles from filename with formatting (removes leading numbers, replaces hyphens with spaces, applies proper case).
+- **Animated Waveform Visualizer** — Smooth wave animation that syncs with audio playback.
 - **Playback Controls** — Previous/restart, play/pause, next track (multi-track playlists only).
 - **Shuffle** — Shuffle playlist once on load via `?shuffle=1` parameter, or toggle via button.
 - **Repeat** — Repeat playlist (jump to track 1 when end reached) via `?repeat=1` parameter, or toggle via button.
+- **Share** — Share button generates a QR code and player URL for the current source. Tap QR or URL to copy to clipboard.
 - **Session Memory** — Remembers all scanned/played tracks in the current session.
 - **Dark Mode** — Optimized dark theme with high contrast.
-- **Direct URL Playback** — Use `?url=...` query parameter to auto-play audio on page load.
+- **Direct URL Playback** — Use `?url=...` query parameter to auto-play media on page load.
 - **Configurable Wait Time** — Set delay between tracks with `?wait=<seconds>` parameter (default: 0).
-- **Pure Client-Side** — No backend required. All processing happens in the browser.
+- **Offline Support** — Service worker precaches all assets for offline use.
+- **Installable PWA** — Can be installed as a fullscreen app via the browser's Add to Home Screen.
 - **URL Validation** — Only accepts `http://` and `https://` URLs. Silently rejects unsafe input.
 
 ## Usage
@@ -25,12 +30,23 @@ A lightweight, client-side NFC- and QR-enabled audio player for scanning and pla
 ### Scanning NFC Tags
 
 1. Open the app on an Android device (Chrome or Edge with Web NFC API support).
-2. Tap the large NFC icon to activate scanning.
+2. Tap the NFC icon to activate scanning.
 3. Hold your NFC-tagged page near the device to read the tag.
-4. The player automatically extracts the URL and loads the track.
+4. The player automatically extracts the URL and loads the media.
 
 NFC tags can include query parameters for shuffle, repeat, and wait time:
 - `https://example.com/audio.mp3?shuffle=1&repeat=1&wait=2`
+
+### Scanning QR Codes
+
+1. Tap the QR icon to open the camera viewfinder.
+2. Point the camera at a QR code containing a URL.
+3. The app detects the code, resolves any redirects, and loads the media.
+4. Tap anywhere to close the viewfinder without scanning.
+
+### Sharing
+
+Tap the share button while media is playing to show a QR code for the current source URL (playlist or single file), including active shuffle, repeat, and wait settings. Tap the QR code or URL to copy the player link to the clipboard.
 
 ### Direct URL Playback
 
@@ -56,21 +72,12 @@ https://player.metafor.no/?url=https://example.com/playlist.m3u&shuffle=1&repeat
 
 ### M3U Playlists
 
-If the URL points to an M3U/M3U8 file, the app automatically:
-- Parses all tracks in the playlist
-- Loads them into the session
-- Optionally shuffles (if `shuffle=1`)
-- Starts playing the first track
-- Enables next/previous navigation
+If the URL points to an M3U/M3U8 file, the app automatically parses all tracks, loads them into the session, optionally shuffles, starts playing the first track, and enables next/previous navigation.
 
-Example:
-```
-https://player.metafor.no/?url=https://example.com/playlist.m3u
-```
-
-## Supported Audio Formats
+## Supported Formats
 
 **Audio:** MP3, WAV, FLAC, AAC, M4A, OGG, WMA
+**Video:** MP4, WebM, OGV, MOV
 **Playlists:** M3U, M3U8
 
 ## NFC Tag Setup
@@ -78,7 +85,7 @@ https://player.metafor.no/?url=https://example.com/playlist.m3u
 Write NFC tags with a URL payload using an NFC writing app (e.g., NFC Tools for Android):
 
 - **Record Type:** Text or URL
-- **Content:** A complete URL pointing to audio or a playlist
+- **Content:** A complete URL pointing to media or a playlist
   - Example: `https://example.com/song.mp3`
   - Example: `https://example.com/playlist.m3u`
   - Example: `https://example.com/song.mp3?shuffle=1&repeat=1&wait=2`
@@ -86,10 +93,11 @@ Write NFC tags with a URL payload using an NFC writing app (e.g., NFC Tools for 
 ## Browser Compatibility
 
 - ✅ **Android Chrome/Edge** — Full support with Web NFC API and QR camera scanning
-- ⚠️ **iOS** — NFC reading available on iOS 13.1+, but Web NFC API not publicly supported. QR scanning works via camera on iOS 14.3+.
-- ✅ **Desktop** — Direct URL mode works on all modern browsers (no scanning). QR scanning works if a camera is available.
+- ⚠️ **iOS** — NFC reading not supported via Web NFC API. QR scanning works via camera on iOS 14.3+.
+- ✅ **Desktop** — Direct URL mode works on all modern browsers. QR scanning works if a camera is available.
+- ⚠️ **Brave** — Web NFC not supported. QR scanning uses native `BarcodeDetector` API to avoid canvas fingerprinting restrictions.
 
-**Device Detection:** If NFC is not supported, the app displays "NFC is not supported on this device. Please scan a QR code." instead of "Tap to scan..."
+**Device Detection:** If NFC is not supported, the NFC button and status message are hidden automatically, leaving only the QR button.
 
 ## Controls
 
@@ -102,6 +110,7 @@ Write NFC tags with a URL payload using an NFC writing app (e.g., NFC Tools for 
 | Next (⏭) | Go to next track (only visible for multi-track playlists) |
 | Shuffle (🔀) | Toggle shuffle mode (brightens green when active) |
 | Repeat (🔁) | Toggle repeat mode (brightens green when active) |
+| Share | Show QR code and URL for the current source |
 
 ## Playback Behavior
 
@@ -113,11 +122,13 @@ Write NFC tags with a URL payload using an NFC writing app (e.g., NFC Tools for 
 
 ## Technical Details
 
-### Metadata Extraction
+### QR Code Detection
 
-1. **Audio (MP3)** — Attempts to read ID3v2 tags from the file.
-2. **Fallback** — Extracts filename from URL path, removes leading numbers, replaces hyphens with spaces, and applies proper case.
-3. **Silent Failure** — If metadata extraction fails, the app gracefully falls back without error messages.
+The app uses a two-tier approach: the native `BarcodeDetector` API is used when available (Chrome, Edge, newer Brave), as it bypasses canvas fingerprinting restrictions and handles both normal and inverted QR codes. jsQR is used as a fallback with canvas-based detection at a capped resolution of 640px wide, running at ~5fps to reduce CPU usage.
+
+### Redirect Resolution
+
+A PHP-based resolver at `resolve/index.php` follows HTTP redirects server-side and returns the final URL. This allows short URLs (e.g. `307.no/abc`) to be resolved to their actual media target before playback. The resolver includes SSRF protection (blocks private IP ranges), referer validation, rate limiting, and a timeout. The player probes for the resolver on startup and falls back gracefully if it is unavailable.
 
 ### Session Tracking
 
@@ -131,32 +142,46 @@ The player maintains a session history of all scanned/played tracks in browser m
 
 ### CORS & Media Loading
 
-The browser's CORS policy applies. Audio URLs must be from servers that allow cross-origin audio requests, or from the same origin. Server must support HTTP Range requests for proper seeking in audio files.
+The browser's CORS policy applies. Media URLs must be from servers that allow cross-origin requests, or from the same origin. Servers must support HTTP Range requests for proper seeking.
+
+### Offline Support
+
+A service worker (`sw.js`) precaches all static assets on first visit. Subsequent visits and media playback work offline. The service worker uses a cache-first strategy and clears old caches automatically on update.
 
 ## Deployment
 
-1. Place `index.html`, `jsQR.min.js`, `sw.js`, `manifest.json`, `scan2play_icon_192x192.png`, and `scan2play_icon_512x512.png` on your web server.
-2. Update the domain in your NFC tag URLs and documentation.
-3. Ensure server sends proper CORS headers for audio files:
+1. Place the following files on your web server in the same directory:
+   - `index.html`, `style.css`, `sw.js`, `manifest.json`
+   - `favicon.svg`, `scan2play_icon_192x192.png`, `scan2play_icon_512x512.png`
+   - `js/scan2play.js`, `js/jsQR/jsQR.js`, `js/qrcodejs/qrcode.min.js`
+   - `icons/` — all SVG icon files
+   - `resolve/index.php` — optional, enables redirect resolution
+2. Ensure the server sends proper CORS headers for media files:
    ```
    Access-Control-Allow-Origin: *
    Access-Control-Allow-Methods: GET, OPTIONS, HEAD
    Access-Control-Allow-Headers: Content-Type, Range
    Accept-Ranges: bytes
    ```
-4. No build step required—minimal file set with inline CSS and JavaScript.
+3. No build step required.
+
+## Third-Party Libraries
+
+- **jsQR** by Cosmo Wolfe — Apache 2.0 License. See `js/jsQR/` for license details.
+- **qrcodejs** by davidshimjs — MIT License. See `js/qrcodejs/` for license details.
 
 ## Security
 
 - **URL Validation** — Only http/https protocols allowed. JavaScript URLs and data: schemes are rejected.
-- **No Server Communication** — All processing is client-side. No user data is sent anywhere.
+- **Redirect Resolver** — Blocks private/loopback IP ranges, validates referer, enforces rate limiting.
+- **No Tracking** — All processing is client-side. No user data is sent to any third party.
 - **CORS Protection** — Browser enforces cross-origin restrictions on media loading.
 
 ## License
 
 Licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)
 
-© 2026 REMARK Van-Vliet
+© 2026 Remark
 Contact: info@remark.no
 Repository: https://github.com/herbert-van-vliet/scan2play
 
