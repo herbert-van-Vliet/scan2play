@@ -9,7 +9,7 @@
   Licensed under Creative Commons Attribution-NonCommercial 4.0 (CC BY-NC)
   See LICENSE file for details
 -->
-<!-- v1.2.2 -->
+<!-- v1.3.0 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -63,33 +63,37 @@
       </div>
     </div>
 
-    <div class="player-section dimmable" id="playerSection">
-      <div class="track-info">
-        <div class="track-title" id="trackTitle">—</div>
-        <div class="track-counter" id="trackCounter">—</div>
-      </div>
-      <div id="audioContainer">
-        <div class="audio-visualizer visualizer-paused" id="visualizer">
-          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-        </div>
-        
-        <div class="progress-bar" id="progressBar">
-          <div class="progress-fill" id="progressFill"></div>
-          <div class="progress-dot" id="progressDot"></div>
-        </div>
-      </div>
-    </div>
+    <div class="media-wrapper" id="mediaWrapper">
+      <video id="videoPlayer" style="display: none;" controls></video>
 
-    <div class="controls-wrapper dimmable" id="controlsWrapper">
-      <div class="controls">
-        <button class="control-btn" id="prevBtn" style="display: none;"><svg class="icon"><use href="#icon-backward"/></svg></button>
-        <button class="control-btn play-pause" id="playPauseBtn"><svg class="icon"><use href="#icon-play"/></svg></button>
-        <button class="control-btn" id="nextBtn" style="display: none;"><svg class="icon"><use href="#icon-forward"/></svg></button>
+      <div class="player-section dimmable" id="playerSection">
+        <div class="track-info">
+          <div class="track-title" id="trackTitle">—</div>
+          <div class="track-counter" id="trackCounter">—</div>
+        </div>
+        <div id="audioContainer">
+          <div class="audio-visualizer visualizer-paused" id="visualizer">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          </div>
+          
+          <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+            <div class="progress-dot" id="progressDot"></div>
+          </div>
+        </div>
       </div>
-      <div class="controls-secondary">
-        <button class="control-btn-small" id="shuffleBtn"><svg class="icon icon-sm"><use href="#icon-shuffle"/></svg></button>
-        <button class="control-btn-small" id="repeatBtn"><svg class="icon icon-sm"><use href="#icon-repeat"/></svg></button>
+
+      <div class="controls-wrapper dimmable" id="controlsWrapper">
+        <div class="controls">
+          <button class="control-btn" id="prevBtn" style="display: none;"><svg class="icon"><use href="#icon-backward"/></svg></button>
+          <button class="control-btn play-pause" id="playPauseBtn"><svg class="icon"><use href="#icon-play"/></svg></button>
+          <button class="control-btn" id="nextBtn" style="display: none;"><svg class="icon"><use href="#icon-forward"/></svg></button>
+        </div>
+        <div class="controls-secondary">
+          <button class="control-btn-small" id="shuffleBtn"><svg class="icon icon-sm"><use href="#icon-shuffle"/></svg></button>
+          <button class="control-btn-small" id="repeatBtn"><svg class="icon icon-sm"><use href="#icon-repeat"/></svg></button>
+        </div>
       </div>
     </div>
   </div>
@@ -169,6 +173,8 @@
       progressBar: document.getElementById('progressBar'),
       progressFill: document.getElementById('progressFill'),
       progressDot: document.getElementById('progressDot'),
+      videoPlayer: document.getElementById('videoPlayer'),
+      mediaWrapper: document.getElementById('mediaWrapper'),
       qrBtn: document.getElementById('qrBtn'),
       qrOverlay: document.getElementById('qrOverlay'),
       qrVideo: document.getElementById('qrVideo'),
@@ -189,6 +195,11 @@
 
       isAudioUrl(url) {
         const exts = ['.mp3', '.wav', '.flac', '.aac', '.m4a', '.ogg', '.wma'];
+        return exts.some(ext => url.toLowerCase().includes(ext));
+      },
+
+      isVideoUrl(url) {
+        const exts = ['.mp4', '.webm', '.ogv', '.mov'];
         return exts.some(ext => url.toLowerCase().includes(ext));
       },
 
@@ -358,24 +369,41 @@
         const trackUrl = state.playlist[index];
         
         console.log('Playing track', index + 1, 'of', state.playlist.length, ':', trackUrl);
-        
-        ui.updateTrackDisplay();
 
-        dom.audioContainer.style.display = 'block';
-        dom.audioPlayer.src = trackUrl;
-        dom.visualizer.classList.add('visualizer-paused');
-        if (autoPlay) {
-          console.log('Auto-playing in 3 seconds...');
-          setTimeout(() => dom.audioPlayer.play(), 3000);
+        if (utils.isVideoUrl(trackUrl)) {
+          dom.playerSection.style.display = 'none';
+          dom.videoPlayer.style.display = 'block';
+          dom.videoPlayer.src = trackUrl;
+          if (autoPlay) {
+            console.log('Auto-playing video in 3 seconds...');
+            setTimeout(() => dom.videoPlayer.play(), 3000);
+          }
+        } else {
+          dom.videoPlayer.style.display = 'none';
+          dom.videoPlayer.src = '';
+          dom.playerSection.classList.add('active');
+          dom.audioContainer.style.display = 'block';
+          dom.audioPlayer.src = trackUrl;
+          dom.visualizer.classList.add('visualizer-paused');
+          if (autoPlay) {
+            console.log('Auto-playing in 3 seconds...');
+            setTimeout(() => dom.audioPlayer.play(), 3000);
+          }
         }
-        
+
+        ui.updateTrackDisplay();
         dom.playPauseBtn.innerHTML = '<svg class="icon"><use href="#icon-play"/></svg>';
       },
 
+      currentMedia() {
+        const trackUrl = state.playlist[state.currentTrackIndex] || '';
+        return utils.isVideoUrl(trackUrl) ? dom.videoPlayer : dom.audioPlayer;
+      },
+
       updateProgress() {
-        if (!dom.audioPlayer.duration || dom.audioPlayer.duration === Infinity) return;
-        
-        const percent = (dom.audioPlayer.currentTime / dom.audioPlayer.duration) * 100;
+        const media = this.currentMedia();
+        if (!media.duration || media.duration === Infinity) return;
+        const percent = (media.currentTime / media.duration) * 100;
         dom.progressFill.style.width = percent + '%';
         dom.progressDot.style.left = percent + '%';
       },
@@ -560,38 +588,40 @@
     });
 
     dom.playPauseBtn.addEventListener('click', () => {
-      if (dom.audioPlayer.paused) {
-        dom.audioPlayer.play();
+      const media = player.currentMedia();
+      if (media.paused) {
+        media.play();
         dom.playPauseBtn.innerHTML = '<svg class="icon"><use href="#icon-pause"/></svg>';
         dom.visualizer.classList.remove('visualizer-paused');
       } else {
-        dom.audioPlayer.pause();
+        media.pause();
         dom.playPauseBtn.innerHTML = '<svg class="icon"><use href="#icon-play"/></svg>';
         dom.visualizer.classList.add('visualizer-paused');
       }
     });
 
     dom.prevBtn.addEventListener('click', () => {
-      const wasPlaying = !dom.audioPlayer.paused;
+      const media = player.currentMedia();
+      const wasPlaying = !media.paused;
       if (state.currentTrackIndex > 0) {
         player.playTrack(state.currentTrackIndex - 1);
       } else {
-        dom.audioPlayer.currentTime = 0;
+        media.currentTime = 0;
       }
       if (wasPlaying) {
-        dom.audioPlayer.play();
+        player.currentMedia().play();
       }
     });
 
     dom.nextBtn.addEventListener('click', () => {
-      const wasPlaying = !dom.audioPlayer.paused;
+      const wasPlaying = !player.currentMedia().paused;
       if (state.currentTrackIndex < state.playlist.length - 1) {
         player.playTrack(state.currentTrackIndex + 1);
       } else {
         player.playTrack(0);
       }
       if (wasPlaying) {
-        dom.audioPlayer.play();
+        player.currentMedia().play();
       }
     });
 
@@ -654,37 +684,44 @@
       dom.visualizer.classList.add('visualizer-paused');
     });
 
-    dom.audioPlayer.addEventListener('timeupdate', () => {
-      player.updateProgress();
+    dom.audioPlayer.addEventListener('timeupdate', () => player.updateProgress());
+    dom.audioPlayer.addEventListener('durationchange', () => player.updateProgress());
+
+    dom.audioPlayer.addEventListener('ended', () => {
+      if (state.currentTrackIndex < state.playlist.length - 1) {
+        setTimeout(() => { player.playTrack(state.currentTrackIndex + 1); dom.audioPlayer.play(); }, state.waitTime * 1000);
+      } else if (state.repeatEnabled) {
+        setTimeout(() => { player.playTrack(0); dom.audioPlayer.play(); }, state.waitTime * 1000);
+      } else {
+        player.playTrack(0);
+      }
     });
 
-    dom.audioPlayer.addEventListener('durationchange', () => {
-      player.updateProgress();
+    dom.videoPlayer.addEventListener('play', () => {
+      dom.playPauseBtn.innerHTML = '<svg class="icon"><use href="#icon-pause"/></svg>';
+    });
+
+    dom.videoPlayer.addEventListener('pause', () => {
+      dom.playPauseBtn.innerHTML = '<svg class="icon"><use href="#icon-play"/></svg>';
+    });
+
+    dom.videoPlayer.addEventListener('ended', () => {
+      if (state.currentTrackIndex < state.playlist.length - 1) {
+        setTimeout(() => { player.playTrack(state.currentTrackIndex + 1); dom.videoPlayer.play(); }, state.waitTime * 1000);
+      } else if (state.repeatEnabled) {
+        setTimeout(() => { player.playTrack(0); dom.videoPlayer.play(); }, state.waitTime * 1000);
+      } else {
+        player.playTrack(0);
+      }
     });
 
     dom.progressBar.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (!dom.audioPlayer.duration || dom.audioPlayer.duration === Infinity) return;
-      
+      const media = player.currentMedia();
+      if (!media.duration || media.duration === Infinity) return;
       const rect = dom.progressBar.getBoundingClientRect();
       const percent = (e.clientX - rect.left) / rect.width;
-      dom.audioPlayer.currentTime = percent * dom.audioPlayer.duration;
-    });
-
-    dom.audioPlayer.addEventListener('ended', () => {
-      if (state.currentTrackIndex < state.playlist.length - 1) {
-        setTimeout(() => {
-          player.playTrack(state.currentTrackIndex + 1);
-          dom.audioPlayer.play();
-        }, state.waitTime * 1000);
-      } else if (state.repeatEnabled) {
-        setTimeout(() => {
-          player.playTrack(0);
-          dom.audioPlayer.play();
-        }, state.waitTime * 1000);
-      } else {
-        player.playTrack(0);
-      }
+      media.currentTime = percent * media.duration;
     });
 
     const params = new URLSearchParams(window.location.search);

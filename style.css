@@ -1,7 +1,7 @@
 /* style.css */
 /* scan2play */
 /* (c) 2026, info@remark.no */
-/* v1.1.0 */
+/* v1.2.0 */
 
 :root {
   --bg-dark: #0a0a0a;
@@ -348,10 +348,18 @@ hr {
   transition: left 0.1s linear;
 }
 
+.media-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
 video {
   width: 100%;
   border-radius: 4px;
   background: #000;
+  max-height: 280px;
+  object-fit: contain;
 }
 
 .controls-wrapper {
