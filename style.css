@@ -1,7 +1,7 @@
 /* style.css */
 /* scan2play */
 /* (c) 2026, info@remark.no */
-/* v1.6.1 */
+/* v1.6.4 */
 
 :root {
   --bg-dark: #0a0a0a;
@@ -526,6 +526,18 @@ video {
   min-height: 80px;
 }
 
+.modal.modal-share {
+  text-align: center;
+}
+
+.bookmark-btn-idle {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+}
+
 .bookmark-list {
   list-style: none;
   margin: 0;
@@ -538,7 +550,7 @@ video {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.6rem 1.5rem;
+  padding: 0.6rem 2.5rem 0.6rem 1.5rem;
   cursor: pointer;
   gap: 0.75rem;
 }

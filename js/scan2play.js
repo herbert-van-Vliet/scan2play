@@ -1,6 +1,6 @@
 // scan2play.js
 // (c) 2026, info@remark.no
-// v1.2.1
+// v1.2.3
 
 const ICONS = {
   'icon-nfc':         './icons/nfc-symbol-brands-solid-full.svg',
@@ -87,7 +87,9 @@ const dom = {
   shareUrl: document.getElementById('shareUrl'),
   shareUrlFeedback: document.getElementById('shareUrlFeedback'),
   bookmarkBtn: document.getElementById('bookmarkBtn'),
+  bookmarkBtnIdle: document.getElementById('bookmarkBtnIdle'),
   bookmarkModal: document.getElementById('bookmarkModal'),
+  bookmarkModalClose: document.getElementById('bookmarkModalClose'),
   bookmarkList: document.getElementById('bookmarkList'),
   qrBtn: document.getElementById('qrBtn'),
   qrOverlay: document.getElementById('qrOverlay'),
@@ -273,6 +275,7 @@ const player = {
     ui.updateButtonStates();
     dom.playerSection.classList.add('active');
     dom.controlsWrapper.classList.add('active');
+    bookmarkSyncVisibility();
     await ui.updateTrackDisplay();
     this.playTrack(state.currentTrackIndex, autoPlay);
   },
@@ -735,6 +738,7 @@ function bookmarkRender() {
       e.stopPropagation();
       const updated = bookmarkGetAll().filter((_, i) => i !== index);
       bookmarkSave(updated);
+      bookmarkSyncVisibility();
       if (updated.length === 0) {
         dom.bookmarkModal.classList.remove('active');
       } else {
@@ -748,6 +752,18 @@ function bookmarkRender() {
   });
 }
 
+function bookmarkSyncVisibility() {
+  const hasBookmarks = bookmarkGetAll().length > 0;
+  const isPlaying = state.playlist.length > 0;
+  dom.bookmarkBtnIdle.style.display = (!isPlaying && hasBookmarks) ? 'flex' : 'none';
+  dom.bookmarkBtn.style.display = isPlaying ? 'flex' : 'none';
+}
+
+function openBookmarkModal() {
+  bookmarkRender();
+  dom.bookmarkModal.classList.add('active');
+}
+
 dom.bookmarkBtn.addEventListener('click', () => {
   if (state.sourceUrl) {
     const stripped = bookmarkStripUrl(state.sourceUrl);
@@ -755,10 +771,16 @@ dom.bookmarkBtn.addEventListener('click', () => {
     if (!list.includes(stripped)) {
       list.unshift(stripped);
       bookmarkSave(list);
+      bookmarkSyncVisibility();
     }
   }
-  bookmarkRender();
-  dom.bookmarkModal.classList.add('active');
+  openBookmarkModal();
+});
+
+dom.bookmarkBtnIdle.addEventListener('click', () => openBookmarkModal());
+
+dom.bookmarkModalClose.addEventListener('click', () => {
+  dom.bookmarkModal.classList.remove('active');
 });
 
 dom.bookmarkModal.addEventListener('click', (e) => {
@@ -847,3 +869,5 @@ if (params.has('url')) {
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js');
 }
+
+bookmarkSyncVisibility();
