@@ -1,6 +1,6 @@
 // scan2play.js
 // (c) 2026, info@remark.no
-// v1.2.3
+// v1.2.4
 
 const ICONS = {
   'icon-nfc':         './icons/nfc-symbol-brands-solid-full.svg',
@@ -222,6 +222,18 @@ ${url}`;
   }
 };
 
+async function isPlaylistUrl(url) {
+  const lower = url.toLowerCase().split('?')[0];
+  if (lower.endsWith('.m3u') || lower.endsWith('.m3u8')) return true;
+  try {
+    const res = await fetch(url, { method: 'HEAD' });
+    const ct = res.headers.get('Content-Type') || '';
+    return ct.includes('mpegurl') || ct.includes('x-scpls') || ct.includes('x-m3u');
+  } catch {
+    return false;
+  }
+}
+
 const player = {
   async loadAndPlay(url, autoPlay = false, options = {}) {
     console.log('loadAndPlay called with:', { url, autoPlay, options });
@@ -240,7 +252,7 @@ const player = {
       console.log('Wait time from URL:', state.waitTime);
     }
 
-    if (url.toLowerCase().endsWith('.m3u') || url.toLowerCase().endsWith('.m3u8')) {
+    if (await isPlaylistUrl(url)) {
       console.log('Parsing playlist from:', url);
       state.playlist = await utils.parsePlaylist(url);
       console.log('Playlist loaded, tracks:', state.playlist.length);
